@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mikrorohr & Leerrohr-Kalkulator · Microfocus / Amadys</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent: rgb(0,207,180);
+  --accent-soft: rgba(0,207,180,0.15);
+  --text: #e8f5f3;
+  --text-dim: rgba(232,245,243,0.6);
+  --glass-bg: rgba(255,255,255,0.05);
+  --glass-border: rgba(255,255,255,0.12);
+  --ok:#00d09a; --warn:#ff9d3c; --tight:#ffd23c; --bad:#ff5a6e;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{min-height:100%;}
+body{
+  font-family:'Syne',sans-serif;
+  color:var(--text);
+  background:#060d0f;
+  position:relative;
+  overflow-x:hidden;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+/* ---- Static gradient background ---- */
+.bg-mesh{
+  position:absolute; inset:0; z-index:-1;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(0,207,180,0.22), transparent 45%),
+    linear-gradient(160deg, #0a2a35 0%, #08222b 38%, #060d0f 100%);
+}
+
+/* ---- Layout ---- */
+.wrap{max-width:1180px; margin:0 auto; padding:32px 20px 80px;}
+header.app-head{margin-bottom:28px;}
+.brand{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+.logo-dot{width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 16px var(--accent);}
+h1{font-weight:700; font-size:clamp(22px,3.4vw,34px); letter-spacing:-0.5px;}
+.subtitle{color:var(--text-dim); font-size:14px; margin-top:6px; font-weight:400;}
+.tag{font-family:'DM Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--accent); border:1px solid var(--glass-border); padding:3px 10px; border-radius:20px;}
+
+.grid2{display:grid; grid-template-columns:1fr; gap:20px;}
+@media(min-width:760px){.grid2{grid-template-columns:1fr 1fr;}}
+
+.card{
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  background:var(--glass-bg);
+  border:1px solid var(--glass-border);
+  border-radius:16px;
+  padding:22px;
+  transition:0.2s ease;
+}
+.card h2{font-size:15px; font-weight:600; letter-spacing:0.3px; margin-bottom:16px; display:flex; align-items:center; gap:8px;}
+.card h2 .ic{color:var(--accent);}
+.full{grid-column:1 / -1;}
+
+label.fld{display:block; margin-bottom:16px;}
+label.fld > span{display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; letter-spacing:0.3px;}
+select,input[type=number],input[type=text]{
+  width:100%; padding:11px 12px;
+  background:rgba(0,0,0,0.25); color:var(--text);
+  border:1px solid var(--glass-border); border-radius:10px;
+  font-family:'DM Mono',monospace; font-size:14px;
+  transition:0.2s ease;
+}
+select:focus,input:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft);}
+select option{background:#0a2a35; color:var(--text);}
+
+/* Sliders */
+.slider-row{display:flex; align-items:center; gap:12px;}
+input[type=range]{-webkit-appearance:none; appearance:none; flex:1; height:5px; border-radius:5px; background:rgba(255,255,255,0.12); outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:18px;height:18px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 10px var(--accent);transition:0.2s ease;}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border:none;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 0 10px var(--accent);}
+.slider-val{font-family:'DM Mono',monospace; font-size:14px; color:var(--accent); min-width:64px; text-align:right;}
+
+/* Spec rows */
+.specs{margin-top:4px; border-top:1px dashed var(--glass-border); padding-top:10px;}
+.spec-row{display:flex; justify-content:space-between; align-items:baseline; padding:4px 0; font-size:12.5px;}
+.spec-row .k{color:var(--text-dim); font-family:'Syne',sans-serif;}
+.spec-row .v{font-family:'DM Mono',monospace; color:var(--accent); font-weight:400;}
+
+/* Status badge */
+.badge{display:inline-flex; align-items:center; gap:9px; padding:10px 18px; border-radius:30px; font-weight:600; font-size:15px; border:1px solid var(--glass-border);}
+.badge .bdot{width:11px;height:11px;border-radius:50%;}
+.badge.ok{background:rgba(0,208,154,0.12); color:var(--ok);} .badge.ok .bdot{background:var(--ok);box-shadow:0 0 10px var(--ok);}
+.badge.warn{background:rgba(255,157,60,0.12); color:var(--warn);} .badge.warn .bdot{background:var(--warn);box-shadow:0 0 10px var(--warn);}
+.badge.bad{background:rgba(255,90,110,0.12); color:var(--bad);} .badge.bad .bdot{background:var(--bad);box-shadow:0 0 10px var(--bad);}
+
+/* Result big number */
+.result-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-top:6px;}
+.kpi{background:rgba(0,0,0,0.22); border:1px solid var(--glass-border); border-radius:12px; padding:14px; text-align:center;}
+.kpi .num{font-family:'DM Mono',monospace; font-size:30px; font-weight:500; color:var(--accent); line-height:1.1;}
+.kpi .lbl{font-size:11px; color:var(--text-dim); margin-top:5px; letter-spacing:0.4px;}
+
+/* Method toggle */
+.seg{display:inline-flex; background:rgba(0,0,0,0.25); border:1px solid var(--glass-border); border-radius:10px; padding:3px; gap:3px; flex-wrap:wrap;}
+.seg button{background:transparent; border:none; color:var(--text-dim); font-family:'Syne',sans-serif; font-size:13px; font-weight:500; padding:8px 14px; border-radius:8px; cursor:pointer; transition:0.2s ease;}
+.seg button.active{background:var(--accent); color:#04201b;}
+
+/* Pills */
+.pills{display:flex; flex-wrap:wrap; gap:7px; margin-top:12px;}
+.pill{font-family:'DM Mono',monospace; font-size:12px; padding:5px 11px; border-radius:20px; background:var(--accent-soft); color:var(--accent); border:1px solid rgba(0,207,180,0.3);}
+.pill.start{background:var(--accent); color:#04201b;}
+
+/* Comparison table */
+table.cmp{width:100%; border-collapse:collapse; font-size:13px;}
+table.cmp th,table.cmp td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--glass-border);}
+table.cmp th{font-size:11px; color:var(--text-dim); font-weight:600; letter-spacing:0.4px; text-transform:uppercase;}
+table.cmp td{font-family:'DM Mono',monospace;}
+table.cmp td .name{font-family:'Syne',sans-serif; font-weight:500;}
+.fillbar{height:8px; border-radius:6px; background:rgba(255,255,255,0.08); overflow:hidden; min-width:70px;}
+.fillbar > i{display:block; height:100%; border-radius:6px; transition:width 0.3s ease;}
+.cnt-badge{font-family:'DM Mono',monospace; font-weight:500;}
+
+/* SVG area */
+.svg-wrap{display:flex; gap:24px; flex-wrap:wrap; align-items:center;}
+.svg-stage{background:rgba(0,0,0,0.3); border:1px solid var(--glass-border); border-radius:14px; padding:10px; flex:0 0 auto;}
+.svg-col{display:flex; flex-direction:column; gap:7px;}
+.svg-cap{font-size:11px; letter-spacing:0.4px; color:var(--text-dim); text-transform:uppercase; font-weight:600;}
+.svg-cap b{color:var(--accent); font-family:'DM Mono',monospace; font-weight:500;}
+.legend{display:flex; flex-direction:column; gap:6px; font-size:12px;}
+.legend-item{display:flex; align-items:center; gap:9px;}
+.legend-sw{width:14px;height:14px;border-radius:4px;border:1px solid rgba(255,255,255,0.2);}
+.legend-item span.lt{font-family:'DM Mono',monospace; color:var(--text-dim);}
+
+.btn{display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#04201b; border:none; font-family:'Syne',sans-serif; font-weight:600; font-size:14px; padding:11px 20px; border-radius:10px; cursor:pointer; transition:0.2s ease;}
+.btn:hover{filter:brightness(1.1); transform:translateY(-1px);}
+.btn.ghost{background:transparent; color:var(--accent); border:1px solid var(--glass-border);}
+
+.combo-kpis{display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--text-dim);}
+.combo-kpis .ck b{font-family:'DM Mono',monospace; color:var(--accent); font-weight:500; font-size:14px;}
+input.cnt{width:72px; padding:7px 8px; text-align:center; font-size:14px;}
+td .more{font-family:'DM Mono',monospace; color:var(--accent);}
+td .more.zero{color:var(--text-dim);}
+.hint{font-size:11.5px; color:var(--text-dim); margin-top:8px; line-height:1.45;}
+.note-line{font-family:'DM Mono',monospace; font-size:11.5px; color:var(--text-dim); margin-top:10px;}
+.note-line b{color:var(--accent); font-weight:500;}
+
+footer.fnote{margin-top:30px; text-align:center; color:var(--text-dim); font-size:11.5px; font-family:'DM Mono',monospace;}
+
+/* Print */
+@media print{
+  body{background:#fff !important;}
+  .bg-mesh{display:none !important;}
+  .no-print{display:none !important;}
+  /* Beschriftung durchgängig schwarz – auch Akzent-/dim-Farben und Inline-Styles */
+  *{ color:#000 !important; text-shadow:none !important;
+     -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  .card{background:#fff !important; border:1px solid #bbb !important; backdrop-filter:none !important; box-shadow:none !important; break-inside:avoid;}
+  .kpi{background:#f2f2f2 !important; border-color:#ccc !important;}
+  .svg-stage{background:#fff !important; border-color:#ccc !important;}
+  select,input,input.cnt{background:#fff !important; border-color:#999 !important;}
+  .tag,.pill,.seg button,.badge,.fillbar{border-color:#999 !important;}
+  table.cmp th,table.cmp td{border-color:#cfcfcf !important;}
+  /* Füllbalken sichtbar lassen */
+  .fillbar{background:#e3e3e3 !important;}
+}
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+
+<div class="wrap">
+  <header class="app-head">
+    <div class="brand">
+      <div class="logo-dot"></div>
+      <h1>Mikrorohr &amp; Leerrohr-Kalkulator</h1>
+      <span class="tag">Microfocus · Amadys Telecom Austria</span>
+    </div>
+    <p class="subtitle">FTTH-Belegungsplanung · Mikrorohrverbände &amp; Einzelröhrchen im Kabelschutzrohr · Einblasschacht-Berechnung</p>
+  </header>
+
+  <!-- Status -->
+  <div class="card full" style="margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+    <div id="badge" class="badge ok"><span class="bdot"></span><span id="badgeTxt">Einzug möglich</span></div>
+    <div class="result-grid" style="flex:1; margin:0;">
+      <div class="kpi"><div class="num" id="kpiUnits">–</div><div class="lbl">Einheiten im Rohr</div></div>
+      <div class="kpi"><div class="num" id="kpiFill">–</div><div class="lbl">Belegung %</div></div>
+      <div class="kpi"><div class="num" id="kpiShafts">–</div><div class="lbl">Einblasschächte</div></div>
+      <div class="kpi"><div class="num" id="kpiFibers">–</div><div class="lbl">Mikroröhrchen ges.</div></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <!-- LEFT: Kabelschutzrohr -->
+    <div class="card">
+      <h2><span class="ic">▣</span> Kabelschutzrohr</h2>
+      <label class="fld"><span>Rohrtyp</span>
+        <select id="pipeSel"></select>
+      </label>
+      <label class="fld" id="customIdWrap" style="display:none;"><span>Benutzerdefinierter Innendurchmesser (mm)</span>
+        <input type="number" id="customId" min="5" max="400" step="0.1" value="96">
+      </label>
+      <div class="specs" id="pipeSpecs"></div>
+    </div>
+
+    <!-- RIGHT: Mikrorohr -->
+    <div class="card">
+      <h2><span class="ic">◎</span> Mikrorohr / Einzelröhrchen</h2>
+      <label class="fld"><span>Produkt (Microfocus)</span>
+        <select id="microSel"></select>
+      </label>
+      <div class="specs" id="microSpecs"></div>
+    </div>
+  </div>
+
+  <!-- Füllgrad & Strecke -->
+  <div class="grid2" style="margin-top:20px;">
+    <div class="card">
+      <h2><span class="ic">◐</span> Füllgrad</h2>
+      <label class="fld"><span>Max. Belegung des Rohrquerschnitts</span>
+        <div class="slider-row">
+          <input type="range" id="fillSlider" min="25" max="70" step="1" value="40">
+          <div class="slider-val" id="fillVal">40 %</div>
+        </div>
+      </label>
+      <div class="hint">Empfehlung Einblastechnik: 40–50 %. Höhere Werte erschweren die Verlegung und erhöhen den Reibungswiderstand.</div>
+    </div>
+
+    <div class="card">
+      <h2><span class="ic">↔</span> Streckenlänge</h2>
+      <label class="fld"><span>Trassenlänge (m)</span>
+        <div class="slider-row">
+          <input type="range" id="lenSlider" min="0" max="5000" step="10" value="1200">
+          <input type="number" id="lenInput" min="0" step="10" value="1200" style="max-width:120px;">
+        </div>
+      </label>
+      <div class="hint">Slider bis 5.000 m · Direkteingabe unbegrenzt.</div>
+    </div>
+  </div>
+
+  <!-- Einblasmethode -->
+  <div class="card full" style="margin-top:20px;">
+    <h2><span class="ic">⊞</span> Einblasschacht-Berechnung</h2>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:flex-start; justify-content:space-between;">
+      <div class="seg no-print" id="methodSeg">
+        <button data-m="fix" class="active">Fixlängen</button>
+        <button data-m="phys">Physikalisch</button>
+        <button data-m="both">Beides</button>
+      </div>
+    </div>
+
+    <div class="grid2" style="margin-top:16px;">
+      <div id="fixBox">
+        <label class="fld"><span>Fix-Intervall zwischen Schächten (m)</span>
+          <div class="slider-row">
+            <input type="range" id="intvSlider" min="100" max="2000" step="50" value="500">
+            <div class="slider-val" id="intvVal">500 m</div>
+          </div>
+        </label>
+        <div class="note-line">Schächte (Fixlänge): <b id="fixShafts">–</b> · Abschnitte: <b id="fixSeg">–</b></div>
+        <div class="pills" id="fixPills"></div>
+      </div>
+
+      <div id="physBox">
+        <label class="fld"><span>Reibungskoeffizient µ</span>
+          <div class="slider-row">
+            <input type="range" id="muSlider" min="0.01" max="0.08" step="0.005" value="0.03">
+            <div class="slider-val" id="muVal">0.030</div>
+          </div>
+        </label>
+        <label class="fld"><span>Einblasdruck (bar)</span>
+          <div class="slider-row">
+            <input type="range" id="presSlider" min="4" max="15" step="0.5" value="10">
+            <div class="slider-val" id="presVal">10.0 bar</div>
+          </div>
+        </label>
+        <div class="note-line">Max. Einblaslänge: <b id="physMax">–</b> · Schächte (physik.): <b id="physShafts">–</b></div>
+        <div class="hint" id="physNote"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Querschnitt SVG -->
+  <div class="card full" style="margin-top:20px;">
+    <h2><span class="ic">◯</span> Querschnitt &amp; Röhrchen-Anordnung</h2>
+    <div class="svg-wrap">
+      <div class="svg-col">
+        <div class="svg-cap" id="capDetail">Verband-Detail · Datenblatt</div>
+        <div class="svg-stage"><svg id="xsvg" width="300" height="300" viewBox="0 0 300 300"></svg></div>
+      </div>
+      <div class="svg-col">
+        <div class="svg-cap" id="capPack">Belegung im Kabelschutzrohr · <b id="capPackCnt">–</b></div>
+        <div class="svg-stage"><svg id="psvg" width="300" height="300" viewBox="0 0 300 300"></svg></div>
+      </div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="note-line" id="xsNote"></div>
+  </div>
+
+  <!-- Vergleichstabelle -->
+  <div class="card full" style="margin-top:20px;">
+    <h2><span class="ic">≣</span> Vergleich aller Mikrorohr-Typen im gewählten Rohr</h2>
+    <table class="cmp">
+      <thead><tr>
+        <th>Produkt</th><th>Außen-Ø</th><th>Einheiten</th><th>Belegung</th><th>Status</th>
+      </tr></thead>
+      <tbody id="cmpBody"></tbody>
+    </table>
+  </div>
+
+  <!-- Kombinationsmodus -->
+  <div class="card full" id="comboCard" style="margin-top:20px;">
+    <h2><span class="ic">⊕</span> Kombination — Drop-, Feederröhrchen &amp; Verbände mischen</h2>
+    <div class="hint">Nutzt das oben gewählte Kabelschutzrohr (<b id="comboPipeName" style="color:var(--accent)">–</b>, ID <b id="comboPipeId" style="color:var(--accent)">–</b> mm) und den Füllgrad (<b id="comboFillTxt" style="color:var(--accent)">–</b> %). Trage ein, wie viele Röhrchen/Verbände du benötigst — die Spalte „noch möglich" zeigt, was zusätzlich in den Restquerschnitt passt.</div>
+
+    <div class="svg-wrap" style="margin-top:16px; align-items:flex-start;">
+      <div class="svg-col">
+        <div class="svg-cap">Kombinierte Belegung · <b id="comboCnt">0</b> Einheiten</div>
+        <div class="svg-stage"><svg id="mixsvg" width="300" height="300" viewBox="0 0 300 300"></svg></div>
+      </div>
+      <div style="flex:1; min-width:300px;">
+        <table class="cmp">
+          <thead><tr>
+            <th>Produkt</th><th>Außen-Ø</th><th>Anzahl</th><th>Belegung</th><th>+ noch möglich</th>
+          </tr></thead>
+          <tbody id="comboBody"></tbody>
+        </table>
+        <div id="comboSummary" style="margin-top:16px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+          <div id="comboBadge" class="badge ok"><span class="bdot"></span><span id="comboBadgeTxt">Einzug möglich</span></div>
+          <div class="combo-kpis">
+            <span class="ck"><b id="comboUsedPct">0 %</b> belegt</span>
+            <span class="ck"><b id="comboFreePct">100 %</b> frei</span>
+            <span class="ck"><b id="comboUsedArea">0</b> / <span id="comboLimitArea">0</span> mm²</span>
+          </div>
+          <button class="btn ghost no-print" style="padding:8px 14px; font-size:13px;" onclick="comboReset()">Stückzahlen 0</button>
+        </div>
+      </div>
+    </div>
+    <div class="note-line" id="comboNote"></div>
+  </div>
+
+  <div class="no-print" style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
+    <button class="btn" onclick="window.print()">⎙ Als PDF exportieren</button>
+    <button class="btn ghost" onclick="resetAll()">↺ Zurücksetzen</button>
+  </div>
+
+  <footer class="fnote">Berechnung nach Füllgradformel · Angaben ohne Gewähr · Microfocus-Datenblätter Amadys Telecom Austria</footer>
+</div>
+
+<script>
+"use strict";
+/* ====================== DATENBANK ====================== */
+const PIPES = [
+  {g:"PE-Rohre (HDPE SDR11)", items:[
+    {id:"pe32",  name:"PE 32",  od:32,  idd:26.2, mat:"HDPE SDR11", note:"Druckrohr"},
+    {id:"pe40",  name:"PE 40",  od:40,  idd:33.4, mat:"HDPE SDR11", note:"Druckrohr"},
+    {id:"pe50",  name:"PE 50",  od:50,  idd:42.0, mat:"HDPE SDR11", note:"Druckrohr"},
+    {id:"pe63",  name:"PE 63",  od:63,  idd:53.0, mat:"HDPE SDR11", note:"Druckrohr"},
+    {id:"pe75",  name:"PE 75",  od:75,  idd:63.0, mat:"HDPE SDR11", note:"Druckrohr"},
+    {id:"pe90",  name:"PE 90",  od:90,  idd:75.6, mat:"HDPE SDR11", note:"Druckrohr"},
+    {id:"pe110", name:"PE 110", od:110, idd:93.0, mat:"HDPE SDR11", note:"Druckrohr"},
+    {id:"pe125", name:"PE 125", od:125, idd:106.0,mat:"HDPE SDR11", note:"Druckrohr"},
+    {id:"pe160", name:"PE 160", od:160, idd:136.0,mat:"HDPE SDR11", note:"Druckrohr"},
+  ]},
+  {g:"KSR Wellrohre", items:[
+    {id:"ksr40", name:"KSR 40", od:40, idd:32, mat:"PE Wellrohr", note:"Kabelschutz, gewellt"},
+    {id:"ksr50", name:"KSR 50", od:50, idd:44, mat:"PE Wellrohr", note:"Kabelschutz, gewellt"},
+    {id:"ksr63", name:"KSR 63", od:63, idd:55, mat:"PE Wellrohr", note:"Kabelschutz, gewellt"},
+    {id:"ksr75", name:"KSR 75", od:75, idd:66, mat:"PE Wellrohr", note:"Kabelschutz, gewellt"},
+    {id:"ksr110",name:"KSR 110",od:110,idd:96, mat:"PE Wellrohr", note:"Kabelschutz, gewellt"},
+    {id:"ksr125",name:"KSR 125",od:125,idd:109,mat:"PE Wellrohr", note:"Kabelschutz, gewellt"},
+    {id:"ksr160",name:"KSR 160",od:160,idd:140,mat:"PE Wellrohr", note:"Kabelschutz, gewellt"},
+  ]},
+  {g:"Microfocus Kabelkanal-Halbrohr (PVC-U)", items:[
+    {id:"kkhr110",name:"KKHR 110/6",od:110,idd:96, mat:"PVC-U", note:"Baulänge 6 m · 0,5 bar dicht · Einblasdruck bis 10 bar", maxBlow:10},
+    {id:"kkhr125",name:"KKHR 125/6",od:125,idd:111,mat:"PVC-U", note:"Baulänge 6 m · 0,5 bar dicht · Einblasdruck bis 10 bar", maxBlow:10},
+  ]},
+  {g:"Leerrohrsysteme", items:[
+    {id:"lr20", name:"LR 20", od:20, idd:15, mat:"PVC", note:"Leerrohr"},
+    {id:"lr25", name:"LR 25", od:25, idd:20, mat:"PVC", note:"Leerrohr"},
+    {id:"lr32", name:"LR 32", od:32, idd:26, mat:"PVC", note:"Leerrohr"},
+    {id:"lr40", name:"LR 40", od:40, idd:33, mat:"PVC", note:"Leerrohr"},
+  ]},
+  {g:"Benutzerdefiniert", items:[
+    {id:"custom", name:"Eigener ID-Wert …", od:null, idd:96, mat:"frei", note:"ID frei eingebbar", custom:true},
+  ]},
+];
+
+// Microfocus Mikrorohre — Außenmaß zur Belegung (Verband: größere Außenkante als Durchmesser-Äquiv.)
+const MICRO = [
+  {id:"e74",  name:"Einzelröhrchen 7/4mm", kind:"single", od:7.0, fiberOd:7.0, idd:4.0, wall:1.5,
+   color:"Rot (RAL 3020)", fill:"#e8001e", pmax:15, pull:"260 N", bend:"≤10×D", unit:"2000 m", art:"auf Anfrage", tubes:1},
+  {id:"e1410",name:"Einzelröhrchen 14/10mm", kind:"single", od:14.0, fiberOd:14.0, idd:10.0, wall:2.0,
+   color:"Orange (RAL 2009)", fill:"#f5821f", pmax:15, pull:"750 N", bend:"≤20×D", unit:"1700 m", art:"513010", tubes:1},
+  {id:"v12",  name:"Verband 12×7/4mm", kind:"bundle12", od:30.0, od2:27.0, idd:4.0, mantle:"0,6–0,9 mm",
+   color:"Orange (RAL 2009) / rote Streifen", fill:"#f5821f", pmax:15, pull:"3.120 N", unit:"2000 m", art:"513022", tubes:12, tubeOd:7},
+  {id:"v24",  name:"Verband 24×7/4mm", kind:"bundle24", od:44.0, od2:33.3, idd:4.0,
+   color:"Orange (RAL 2009) / rote Streifen", fill:"#f5821f", pmax:15, pull:"6.300 N", unit:"1950 m", art:"513018", tubes:24, tubeOd:7},
+  {id:"v7",   name:"Verband 7×14/10mm", kind:"bundle7", od:43.5, od2:37.7, idd:10.0,
+   color:"Grün (RAL 6001) / rote Streifen", fill:"#2c7a3f", pmax:15, pull:"5.250 N", unit:"1800 m", art:"513025", tubes:7, tubeOd:14},
+];
+
+const DIN = ["#e8001e","#00a651","#005bac","#ffe600","#f5f5f5","#9b9b9b","#8b4513","#8b00ff","#00b5c8","#222222","#ff8c00","#ffb6c1"];
+const DIN_NAMES = ["Rot","Grün","Blau","Gelb","Weiß","Grau","Braun","Violett","Türkis","Schwarz","Orange","Rosa"];
+
+/* ====================== STATE ====================== */
+let state = { pipe:"kkhr110", micro:"v12", fill:40, len:1200, method:"fix", intv:500, mu:0.03, pres:10 };
+
+/* ====================== HELPERS ====================== */
+const $ = s => document.querySelector(s);
+const f0 = n => Math.round(Number(n)).toLocaleString('de-DE');
+const f1 = n => Number(n).toFixed(1);
+const f2 = n => Number(n).toFixed(2);
+function getPipe(id){ for(const g of PIPES) for(const p of g.items) if(p.id===id) return p; }
+function getMicro(id){ return MICRO.find(m=>m.id===id); }
+function pipeInnerId(){
+  const p = getPipe(state.pipe);
+  if(p.custom) return parseFloat($("#customId").value)||0;
+  return p.idd;
+}
+// effektiver Außendurchmesser des Mikrorohrs (für Verbände: max. Außenkante)
+function microEffOd(m){ return m.od2 ? Math.max(m.od, m.od2) : m.od; }
+
+/* ====================== POPULATE SELECTS ====================== */
+(function buildSelects(){
+  const ps = $("#pipeSel");
+  PIPES.forEach(g=>{
+    const og = document.createElement("optgroup"); og.label=g.g;
+    g.items.forEach(it=>{
+      const o=document.createElement("option"); o.value=it.id;
+      o.textContent = it.custom ? it.name : `${it.name} — ID ${f1(it.idd)} mm`;
+      og.appendChild(o);
+    });
+    ps.appendChild(og);
+  });
+  ps.value = state.pipe;
+
+  const ms=$("#microSel");
+  MICRO.forEach(m=>{
+    const o=document.createElement("option"); o.value=m.id; o.textContent=m.name; ms.appendChild(o);
+  });
+  ms.value = state.micro;
+})();
+
+/* ====================== SPEC ROWS ====================== */
+function specRow(k,v){ return `<div class="spec-row"><span class="k">${k}</span><span class="v">${v}</span></div>`; }
+
+function renderPipeSpecs(){
+  const p=getPipe(state.pipe);
+  const idd = pipeInnerId();
+  let html="";
+  if(!p.custom){
+    html += specRow("Innendurchmesser (ID)", `${f1(p.idd)} mm`);
+    if(p.od){ html += specRow("Außendurchmesser (AD)", `${f1(p.od)} mm`);
+      html += specRow("Wandstärke", `${f1((p.od-p.idd)/2)} mm`); }
+    html += specRow("Material", p.mat);
+    html += specRow("Hinweis", p.note);
+  } else {
+    html += specRow("Innendurchmesser (ID)", `${f1(idd)} mm (frei)`);
+    html += specRow("Material", p.mat);
+    html += specRow("Hinweis", p.note);
+  }
+  html += specRow("Querschnittsfläche", `${f2(Math.PI*Math.pow(idd/2,2))} mm²`);
+  $("#pipeSpecs").innerHTML = html;
+  $("#customIdWrap").style.display = p.custom ? "block" : "none";
+}
+
+function renderMicroSpecs(){
+  const m=getMicro(state.micro);
+  let html="";
+  if(m.kind==="single"){
+    html += specRow("Außendurchmesser (AD)", `${f1(m.od)} mm`);
+    html += specRow("Innendurchmesser (ID)", `${f1(m.idd)} mm`);
+    html += specRow("Wandstärke", `${f1(m.wall)} mm`);
+  } else {
+    html += specRow("Anzahl Röhrchen", `${m.tubes} × ${f1(m.tubeOd)}/${f1(m.idd)} mm`);
+    html += specRow("Nom. Außenmaß", m.od2 ? `${f1(m.od)} × ${f1(m.od2)} mm` : `${f1(m.od)} mm`);
+    if(m.mantle) html += specRow("Mantelwand", m.mantle);
+  }
+  html += specRow("Farbe / Mantel", m.color);
+  html += specRow("Max. Druck", `${m.pmax} bar`);
+  html += specRow("Zugkraft", m.pull);
+  if(m.bend) html += specRow("Biegeradius", m.bend);
+  html += specRow("Liefereinheit", m.unit);
+  html += specRow("Artikel-Nr.", m.art);
+  $("#microSpecs").innerHTML = html;
+}
+
+/* ====================== KERNBERECHNUNG ====================== */
+// Anzahl Einheiten = floor( (π·innerR²·fill) / (π·unitR²) )
+function unitsFor(innerId, m, fillRatio){
+  const innerR = innerId/2;
+  const unitR = microEffOd(m)/2;
+  if(unitR<=0 || innerR<=0) return 0;
+  if(microEffOd(m) > innerId) return 0; // passt physisch nicht
+  return Math.floor( (Math.PI*innerR*innerR*fillRatio) / (Math.PI*unitR*unitR) );
+}
+function occupancyPct(innerId, m, count){
+  const innerArea = Math.PI*Math.pow(innerId/2,2);
+  const unitArea  = Math.PI*Math.pow(microEffOd(m)/2,2);
+  if(innerArea<=0) return 0;
+  return (count*unitArea/innerArea)*100;
+}
+function statusFor(occ, count){
+  if(count<=0) return {cls:"bad", txt:"Kein Einzug möglich"};
+  if(occ>55) return {cls:"warn", txt:"Grenzwertig"};
+  if(occ>state.fill-2) return {cls:"warn", txt:"Grenzwertig"};
+  return {cls:"ok", txt:"Einzug möglich"};
+}
+
+/* ====================== EINBLAS-SCHÄCHTE ====================== */
+function fixShafts(){
+  const L=state.len, I=state.intv;
+  if(L<=0||I<=0) return {shafts:0, segments:0, positions:[]};
+  const segments = Math.ceil(L/I);
+  const shafts = segments+1; // Start + jedes Intervallende
+  const positions=[];
+  for(let i=0;i<=segments;i++) positions.push(Math.min(i*I, L));
+  return {shafts, segments, positions};
+}
+function physMaxLen(){
+  // maxLen = (P·A) / (µ·9.81)
+  const p=getPipe(state.pipe);
+  let presBar = state.pres;
+  if(p.maxBlow) presBar = Math.min(presBar, p.maxBlow); // KKHR auf 10 bar begrenzen
+  const P = presBar*1e5;            // bar -> Pa
+  const A = Math.PI*Math.pow((pipeInnerId()/1000)/2,2); // ID mm -> m, Fläche m²
+  const maxLen = (P*A)/(state.mu*9.81);
+  return {maxLen, presBar};
+}
+function physShaftsCalc(){
+  const {maxLen,presBar}=physMaxLen();
+  const L=state.len;
+  let shafts = (L>0 && maxLen>0) ? Math.ceil(L/maxLen)+1 : 0;
+  return {maxLen, presBar, shafts};
+}
+
+/* ====================== RENDER ALLES ====================== */
+function renderAll(){
+  renderPipeSpecs();
+  renderMicroSpecs();
+
+  const innerId = pipeInnerId();
+  const m = getMicro(state.micro);
+  const fillRatio = state.fill/100;
+  const count = unitsFor(innerId, m, fillRatio);
+  const occ = occupancyPct(innerId, m, count);
+  const st = statusFor(occ, count);
+
+  // Status badge + kpis
+  const badge=$("#badge");
+  badge.className = "badge "+st.cls;
+  $("#badgeTxt").textContent = st.txt;
+  $("#kpiUnits").textContent = count;
+  $("#kpiFill").textContent = count>0 ? f1(occ)+" %" : "0 %";
+  $("#kpiFibers").textContent = count>0 ? (count*m.tubes) : 0;
+
+  // Schächte
+  const fx=fixShafts();
+  const ph=physShaftsCalc();
+  $("#fixShafts").textContent = fx.shafts;
+  $("#fixSeg").textContent = fx.segments;
+  $("#fixPills").innerHTML = fx.positions.map((p,i)=>
+    `<span class="pill ${i===0?'start':''}">${i===0?'Start ':''}${f1(p)} m</span>`).join("");
+  $("#physMax").textContent = ph.maxLen>0 ? f1(ph.maxLen)+" m" : "–";
+  $("#physShafts").textContent = ph.shafts;
+  const pp=getPipe(state.pipe);
+  $("#physNote").innerHTML = `Druck wirksam: <b style="color:var(--accent)">${f1(ph.presBar)} bar</b>`
+     + (pp.maxBlow? ` (KKHR-Limit ${pp.maxBlow} bar)`:"")
+     + ` · Fläche A = ${f2(Math.PI*Math.pow((innerId/1000)/2,2)*1e6)} mm² · µ = ${f2(state.mu)}`;
+
+  // KPI Schächte = je nach Methode
+  let shaftKpi=0;
+  if(state.method==="fix") shaftKpi=fx.shafts;
+  else if(state.method==="phys") shaftKpi=ph.shafts;
+  else shaftKpi=Math.max(fx.shafts, ph.shafts);
+  $("#kpiShafts").textContent = shaftKpi;
+
+  // Method box visibility
+  $("#fixBox").style.display  = (state.method==="phys")?"none":"block";
+  $("#physBox").style.display = (state.method==="fix")?"none":"block";
+
+  drawSVG(m, count, occ);
+  renderCompare(innerId, fillRatio);
+  renderCombo();
+}
+
+/* ====================== VERGLEICHSTABELLE ====================== */
+function barColor(occ, count){
+  if(count<=0) return "var(--bad)";
+  if(occ>55) return "var(--tight)";
+  if(occ>45) return "var(--warn)";
+  return "var(--ok)";
+}
+function renderCompare(innerId, fillRatio){
+  const rows = MICRO.map(m=>{
+    const c=unitsFor(innerId,m,fillRatio);
+    const occ=occupancyPct(innerId,m,c);
+    const st=statusFor(occ,c);
+    const w=Math.min(100, occ);
+    const active = m.id===state.micro;
+    return `<tr style="${active?'background:rgba(0,207,180,0.06);':''}">
+      <td><span class="name">${m.name}</span></td>
+      <td>${f1(microEffOd(m))} mm</td>
+      <td class="cnt-badge">${c}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="fillbar"><i style="width:${w}%;background:${barColor(occ,c)};"></i></div>
+          <span style="color:${barColor(occ,c)};">${f1(occ)}%</span>
+        </div>
+      </td>
+      <td style="color:${st.cls==='ok'?'var(--ok)':st.cls==='warn'?'var(--warn)':'var(--bad)'};">${st.txt}</td>
+    </tr>`;
+  }).join("");
+  $("#cmpBody").innerHTML = rows;
+}
+
+/* ====================== SVG QUERSCHNITT ====================== */
+
+// Polyline-Länge
+function polyPerim(pts){ let s=0; for(let i=0;i<pts.length;i++){ const a=pts[i],b=pts[(i+1)%pts.length]; s+=Math.hypot(b[0]-a[0],b[1]-a[1]); } return s; }
+
+// Zeichnet eine Einheit (Einzelröhrchen oder Verband) zentriert bei cx,cy.
+// sc = px pro mm. mode: 'detail' (groß, nummeriert, heller Grund) | 'pack' (klein, im Rohr)
+function drawUnitAt(parts, m, cx, cy, sc, mode){
+  const numbered = (mode==='detail');
+
+  // -- Einzelröhrchen --
+  if(m.kind==='single'){
+    const rOut=m.od/2*sc, rIn=m.idd/2*sc;
+    parts.push(`<circle cx="${cx}" cy="${cy}" r="${rOut}" fill="${m.fill}" stroke="rgba(0,0,0,0.3)" stroke-width="${Math.max(0.5,rOut*0.05)}"/>`);
+    parts.push(`<circle cx="${cx}" cy="${cy}" r="${rIn}" fill="#ffffff"/>`);
+    if(numbered) parts.push(`<text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="DM Mono" font-size="12" fill="#555">1</text>`);
+    return;
+  }
+
+  // -- Verband --
+  const g = bundleGeom(m);
+  const tR = g.tRmm*sc;
+  const boreR = (m.idd/m.tubeOd)*tR;
+  const hpArr = g.hull.map(p=>[cx+p[0]*sc, cy+p[1]*sc]);
+  const hp = hpArr.map(p=>`${p[0].toFixed(2)},${p[1].toFixed(2)}`).join(" ");
+  const mantleW = Math.max(2, tR*0.30);
+  const interior = mode==='detail' ? '#fcfcfc' : hex2rgba(m.fill,0.12);
+  // Mantel-Hülle (Datenblatt-Silhouette) – umschließt alle Röhrchen garantiert
+  parts.push(`<polygon points="${hp}" fill="${interior}" stroke="${m.fill}" stroke-width="${mantleW}" stroke-linejoin="round"/>`);
+  // rote Streifen-Akzente am Mantel (Datenblatt: "mit roten Streifen")
+  const perim=polyPerim(hpArr), seg=perim/6;
+  parts.push(`<polygon points="${hp}" fill="none" stroke="#e8001e" stroke-width="${mantleW}" stroke-linejoin="round" stroke-dasharray="${(seg*0.34).toFixed(1)} ${(seg*0.66).toFixed(1)}" stroke-dashoffset="${(seg*0.17).toFixed(1)}"/>`);
+
+  g.tubes.forEach(t=>{
+    const x=cx+t.x*sc, y=cy+t.y*sc;
+    const base = DIN[(t.n-1)%12];
+    const translucent = (m.kind==='bundle24' && t.n>=13);
+    if(translucent){
+      // transluzentes Röhrchen: grauer Ring + weißer Kern + kurzer Farbstreifen oben
+      parts.push(`<circle cx="${x}" cy="${y}" r="${tR}" fill="#dfe4e4" stroke="#b6bcbc" stroke-width="${Math.max(0.4,tR*0.05)}"/>`);
+      parts.push(`<circle cx="${x}" cy="${y}" r="${boreR}" fill="#ffffff"/>`);
+      if(tR>2){
+        const midR=(tR+boreR)/2, rw=(tR-boreR)*0.95;
+        const a0=250*Math.PI/180, a1=290*Math.PI/180;
+        const sx=x+midR*Math.cos(a0), sy=y+midR*Math.sin(a0), ex=x+midR*Math.cos(a1), ey=y+midR*Math.sin(a1);
+        parts.push(`<path d="M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${midR.toFixed(2)} ${midR.toFixed(2)} 0 0 1 ${ex.toFixed(2)} ${ey.toFixed(2)}" fill="none" stroke="${base}" stroke-width="${rw.toFixed(2)}" stroke-linecap="round"/>`);
+      }
+    } else {
+      const isWhite = base==='#f5f5f5';
+      parts.push(`<circle cx="${x}" cy="${y}" r="${tR}" fill="${base}" stroke="${isWhite?'#c0c0c0':'rgba(0,0,0,0.28)'}" stroke-width="${Math.max(0.4,tR*0.05)}"/>`);
+      parts.push(`<circle cx="${x}" cy="${y}" r="${boreR}" fill="#ffffff"/>`);
+    }
+    if(numbered && tR>6){
+      parts.push(`<text x="${x}" y="${y+3.5}" text-anchor="middle" font-family="DM Mono" font-size="${Math.min(11,boreR*1.1)}" fill="#555">${t.n}</text>`);
+    }
+  });
+}
+
+// Überlappungsfreie Packung von n Einheiten (Radius uR) in Kreis mit Radius rInner.
+// Kraftbasierte Relaxation: Abstoßung erzwingt Mindestabstand 2uR, Rand hält im Rohr.
+// Liefert nur tatsächlich kollisionsfrei platzierbare Einheiten (Rest → Hinweis).
+function packPositions(rInner, uR, n){
+  if(n<=0||uR<=0||rInner<uR*0.999) return [];
+  const minD=2*uR, maxR=Math.max(0, rInner-uR);
+  if(n===1) return [{x:0,y:0}];
+  // Start: goldener-Winkel-Spirale (deterministisch)
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const a=i*2.399963229, rr=maxR*Math.sqrt(i/(n-1));
+    pts.push([Math.cos(a)*rr, Math.sin(a)*rr]);
+  }
+  const iters=Math.min(400, Math.floor(24000/n)+60);
+  for(let it=0;it<iters;it++){
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+      let dx=pts[j][0]-pts[i][0], dy=pts[j][1]-pts[i][1];
+      let d=Math.hypot(dx,dy); if(d<1e-6){ d=1e-6; dx=1e-6; }
+      if(d<minD){ const p=(minD-d)/2/d; pts[i][0]-=dx*p; pts[i][1]-=dy*p; pts[j][0]+=dx*p; pts[j][1]+=dy*p; }
+    }
+    for(let i=0;i<n;i++){ const d=Math.hypot(pts[i][0],pts[i][1]); if(d>maxR && d>0){ const f=maxR/d; pts[i][0]*=f; pts[i][1]*=f; } }
+  }
+  // Kollisionsfreie Teilmenge auswählen (zentrumsnah zuerst), damit nie etwas überlappt
+  const order=pts.map((p,i)=>({p,d:p[0]*p[0]+p[1]*p[1]})).sort((a,b)=>a.d-b.d);
+  const ok=[], tol=minD-0.5;
+  for(const o of order){
+    let clash=false;
+    for(const q of ok){ if(Math.hypot(o.p[0]-q[0],o.p[1]-q[1])<tol){ clash=true; break; } }
+    if(!clash) ok.push(o.p);
+  }
+  return ok.map(p=>({x:p[0],y:p[1]}));
+}
+
+function drawSVG(m, count, occ){
+  const innerId=pipeInnerId();
+  const effOd=microEffOd(m);
+
+  /* ---- 1) Detailquerschnitt der Einheit ---- */
+  const cx=150, cy=150;
+  const scD = 244 / unitSizeMm(m);
+  let dparts=[];
+  drawUnitAt(dparts, m, cx, cy, scD, 'detail');
+  $("#xsvg").innerHTML = dparts.join("");
+
+  /* ---- 2) Kabelschutzrohr mit eingezogenen Einheiten ---- */
+  let pparts=[];
+  const rPipe = 128;
+  // Rohrwand
+  pparts.push(`<circle cx="${cx}" cy="${cy}" r="${rPipe+8}" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="14"/>`);
+  pparts.push(`<circle cx="${cx}" cy="${cy}" r="${rPipe}" fill="rgba(0,0,0,0.35)" stroke="rgba(0,207,180,0.6)" stroke-width="2"/>`);
+
+  let shown=0;
+  if(count>0 && effOd<=innerId){
+    const scP = rPipe / (innerId/2);          // px pro mm im Rohr
+    const uR  = (unitSizeMm(m)/2) * scP;       // Hüllradius der Einheit
+    const pos = packPositions(rPipe, uR, count);
+    shown = pos.length;
+    pos.forEach(p=> drawUnitAt(pparts, m, cx+p.x, cy+p.y, scP, 'pack'));
+  } else {
+    pparts.push(`<text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="Syne" font-size="13" fill="#ff5a6e">kein Einzug</text>`);
+  }
+  $("#psvg").innerHTML = pparts.join("");
+
+  // Legende
+  let legItems=[];
+  if(m.kind==='single'){ legItems=[{c:m.fill,t:m.color}]; }
+  else { for(let i=0;i<Math.min(12,m.tubes);i++) legItems.push({c:DIN[i], t:`${i+1} · ${DIN_NAMES[i]}`}); }
+  drawLegend(legItems, m);
+
+  // Captions / Notiz
+  const unitWord = m.kind==='single' ? 'Röhrchen' : (count===1?'Verband':'Verbände');
+  $("#capPackCnt").textContent = `${count} ${unitWord}` + (shown<count? ` (${shown} dargestellt)`:"");
+  const note = m.kind==="single"
+    ? `Einzelröhrchen ${f1(m.od)}/${f1(m.idd)} mm · ${m.color} · ${count} Stück bei ${f1(state.fill)} % Füllgrad in ${getPipe(state.pipe).name||''} (ID ${f1(innerId)} mm).`
+    : `${m.name} · Sechseck-Mantel ${f1(m.od)}×${f1(m.od2)} mm · ${count} ${count===1?'Verband':'Verbände'} = ${count*m.tubes} Mikroröhrchen bei ${f1(state.fill)} % Füllgrad (ID ${f1(innerId)} mm). Belegung ${f1(occ)} %.`;
+  $("#xsNote").textContent = note;
+}
+
+function drawLegend(items, m){
+  let html = items.map(it=>`<div class="legend-item"><div class="legend-sw" style="background:${it.c};"></div><span class="lt">${it.t}</span></div>`).join("");
+  if(m && m.kind==="bundle24"){
+    html += `<div class="legend-item" style="margin-top:6px;"><div class="legend-sw" style="background:repeating-linear-gradient(45deg,#888,#888 3px,#fff 3px,#fff 6px);"></div><span class="lt">13–24: transluzent + Streifen</span></div>`;
+  }
+  $("#legend").innerHTML = html;
+}
+
+function hex2rgba(hex,a){
+  const c=hex.replace("#","");
+  const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/* --- Röhrchen-Anordnung EXAKT nach Datenblatt --- */
+// Pro Röhrchennummer: [Spalte, Reihe] in Rastereinheiten.
+// Spalte × s (mm), Reihe × s·0.866 (mm). Hexagonale Packung, 1:1 wie Datenblatt.
+const BUNDLE_POS = {
+  // 12×7/4: Reihen 2-3-4-3
+  bundle12: {1:[-0.5,0],2:[0.5,0], 9:[-1,1],10:[0,1],3:[1,1], 8:[-1.5,2],12:[-0.5,2],11:[0.5,2],4:[1.5,2], 7:[-1,3],6:[0,3],5:[1,3]},
+  // 24×7/4: Reihen 4-5-6-5-4 (symmetrisch)
+  bundle24: {1:[-1.5,0],2:[-0.5,0],3:[0.5,0],4:[1.5,0],
+             14:[-2,1],15:[-1,1],16:[0,1],17:[1,1],5:[2,1],
+             13:[-2.5,2],22:[-1.5,2],23:[-0.5,2],24:[0.5,2],18:[1.5,2],6:[2.5,2],
+             12:[-2,3],21:[-1,3],20:[0,3],19:[1,3],7:[2,3],
+             11:[-1.5,4],10:[-0.5,4],9:[0.5,4],8:[1.5,4]},
+  // 7×14/10: Reihen 2-3-2
+  bundle7: {1:[-0.5,0],2:[0.5,0], 6:[-1,1],7:[0,1],3:[1,1], 5:[-0.5,2],4:[0.5,2]},
+};
+
+// Convex Hull (Andrew monotone chain)
+function convexHull(pts){
+  const p=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+  if(p.length<3) return p;
+  const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
+  const lo=[]; for(const q of p){ while(lo.length>=2 && cr(lo[lo.length-2],lo[lo.length-1],q)<=0) lo.pop(); lo.push(q);}
+  const up=[]; for(let i=p.length-1;i>=0;i--){ const q=p[i]; while(up.length>=2 && cr(up[up.length-2],up[up.length-1],q)<=0) up.pop(); up.push(q);}
+  lo.pop(); up.pop(); return lo.concat(up);
+}
+
+// Liefert Röhrchen-Mittelpunkte (mm, zentriert) + Mantel-Hülle, die alle Röhrchen garantiert umschließt
+function bundleGeom(m){
+  const map=BUNDLE_POS[m.kind];
+  const s=m.tubeOd*1.05, rowH=s*0.866, tRmm=m.tubeOd/2;
+  const tubes=[]; let minx=1e9,maxx=-1e9,miny=1e9,maxy=-1e9;
+  for(const n in map){ const c=map[n][0], r=map[n][1]; const x=c*s, y=r*rowH;
+    tubes.push({n:+n, x, y}); minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y); }
+  const ox=(minx+maxx)/2, oy=(miny+maxy)/2;
+  tubes.forEach(t=>{ t.x-=ox; t.y-=oy; });
+  // Minkowski-Hülle: jedes Röhrchen mit (tubeR + Mantelabstand) abtasten → konvexe Hülle
+  const margin=m.tubeOd*0.22, sampleR=tRmm+margin, sp=[];
+  tubes.forEach(t=>{ for(let a=0;a<360;a+=12){ const rad=a*Math.PI/180; sp.push([t.x+Math.cos(rad)*sampleR, t.y+Math.sin(rad)*sampleR]); }});
+  const hull=convexHull(sp);
+  let circum=0; hull.forEach(h=>{ const d=Math.hypot(h[0],h[1]); if(d>circum)circum=d; });
+  return {tubes, hull, tRmm, circumMm:circum};
+}
+function unitSizeMm(m){
+  if(m.kind==='single') return m.od;
+  return 2*bundleGeom(m).circumMm;
+}
+
+/* ====================== KOMBINATIONSMODUS ====================== */
+function unitAreaMm(m){ return Math.PI*Math.pow(microEffOd(m)/2,2); }
+const _circumCache={};
+function unitPackRadiusMm(m){
+  if(m.kind==='single') return m.od/2;
+  if(_circumCache[m.id]==null) _circumCache[m.id]=bundleGeom(m).circumMm;
+  return _circumCache[m.id];
+}
+
+// Mischpackung: Einheiten mit individuellem Radius überlappungsfrei in Kreis (alles in mm)
+function packMixed(rInnerMm, units){
+  const n=units.length; if(!n) return [];
+  const pts=[];
+  for(let i=0;i<n;i++){ const a=i*2.399963229, rr=rInnerMm*Math.sqrt(i/Math.max(1,n))*0.92; pts.push([Math.cos(a)*rr, Math.sin(a)*rr]); }
+  const iters=Math.min(500, Math.floor(26000/n)+80);
+  for(let it=0;it<iters;it++){
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+      const minD=units[i].uR+units[j].uR;
+      let dx=pts[j][0]-pts[i][0], dy=pts[j][1]-pts[i][1]; let d=Math.hypot(dx,dy); if(d<1e-6){ dx=1e-6; dy=0; d=1e-6; }
+      if(d<minD){ const p=(minD-d)/2/d; pts[i][0]-=dx*p; pts[i][1]-=dy*p; pts[j][0]+=dx*p; pts[j][1]+=dy*p; }
+    }
+    for(let i=0;i<n;i++){ const maxR=rInnerMm-units[i].uR; const d=Math.hypot(pts[i][0],pts[i][1]); if(d>maxR && d>0){ const f=maxR/d; pts[i][0]*=f; pts[i][1]*=f; } }
+  }
+  // kollisionsfreie Teilmenge (zentrumsnah zuerst)
+  const idx=units.map((u,i)=>i).sort((a,b)=> (pts[a][0]**2+pts[a][1]**2)-(pts[b][0]**2+pts[b][1]**2));
+  const acc=[];
+  for(const i of idx){
+    let clash=false;
+    for(const j of acc){ if(Math.hypot(pts[i][0]-pts[j][0],pts[i][1]-pts[j][1]) < units[i].uR+units[j].uR-0.4){ clash=true; break; } }
+    if(!clash) acc.push(i);
+  }
+  return acc.map(i=>({x:pts[i][0], y:pts[i][1], m:units[i].m}));
+}
+
+function buildCombo(){
+  const tb=$("#comboBody");
+  tb.innerHTML = MICRO.map(m=>`<tr data-mid="${m.id}">
+    <td><span class="name">${m.name}</span></td>
+    <td>${f1(microEffOd(m))} mm</td>
+    <td><input class="cnt" type="number" min="0" step="1" value="0" data-mid="${m.id}"></td>
+    <td><span class="ubel">–</span></td>
+    <td><span class="more zero">+0</span></td>
+  </tr>`).join("");
+  tb.querySelectorAll("input.cnt").forEach(i=> i.addEventListener("input", renderCombo));
+}
+function comboCounts(){
+  const o={};
+  document.querySelectorAll('#comboBody input.cnt').forEach(i=> o[i.dataset.mid]=Math.max(0, parseInt(i.value)||0));
+  return o;
+}
+function comboReset(){ document.querySelectorAll('#comboBody input.cnt').forEach(i=>i.value=0); renderCombo(); }
+
+function renderCombo(){
+  const innerId=pipeInnerId(), pipe=getPipe(state.pipe);
+  const pipeArea=Math.PI*Math.pow(innerId/2,2);
+  const limitArea=pipeArea*(state.fill/100);
+  const counts=comboCounts();
+
+  $("#comboPipeName").textContent = pipe.name || '—';
+  $("#comboPipeId").textContent = f1(innerId);
+  $("#comboFillTxt").textContent = f1(state.fill);
+
+  let usedArea=0, totalUnits=0, anyTooBig=false;
+  MICRO.forEach(m=>{ const n=counts[m.id]||0; if(n>0){ usedArea+=n*unitAreaMm(m); totalUnits+=n; if(microEffOd(m)>innerId) anyTooBig=true; } });
+  const remain=limitArea-usedArea;
+
+  // Zeilen: Belegung + "noch möglich"
+  MICRO.forEach(m=>{
+    const row=document.querySelector(`#comboBody tr[data-mid="${m.id}"]`);
+    const n=counts[m.id]||0;
+    const bel = pipeArea>0 ? (n*unitAreaMm(m)/pipeArea*100) : 0;
+    row.querySelector('.ubel').textContent = n>0 ? f1(bel)+' %' : '–';
+    const fits = microEffOd(m)<=innerId;
+    const extra = (fits && remain>0) ? Math.floor(remain/unitAreaMm(m)) : 0;
+    const more=row.querySelector('.more');
+    more.textContent = fits ? '+'+extra : '–';
+    more.classList.toggle('zero', extra===0 || !fits);
+  });
+
+  // Summary
+  const usedPct = pipeArea>0 ? usedArea/pipeArea*100 : 0;
+  $("#comboUsedPct").textContent = f1(usedPct)+' %';
+  $("#comboFreePct").textContent = f1(Math.max(0, state.fill-usedPct))+' %';
+  $("#comboUsedArea").textContent = f0(usedArea);
+  $("#comboLimitArea").textContent = f0(limitArea);
+
+  // Status
+  const badge=$("#comboBadge");
+  let cls='ok', txt='Einzug möglich';
+  if(anyTooBig){ cls='bad'; txt='Röhrchen größer als Rohr'; }
+  else if(totalUnits===0){ cls='ok'; txt='Noch nichts gewählt'; }
+  else if(usedArea>limitArea){ cls='bad'; txt='Füllgrad überschritten'; }
+  else if(usedArea>limitArea*0.92){ cls='warn'; txt='Grenzwertig'; }
+  badge.className='badge '+cls;
+  $("#comboBadgeTxt").textContent=txt;
+
+  // Visualisierung
+  const cx=150, cy=150, rPipe=128;
+  let mp=[];
+  mp.push(`<circle cx="${cx}" cy="${cy}" r="${rPipe+8}" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="14"/>`);
+  mp.push(`<circle cx="${cx}" cy="${cy}" r="${rPipe}" fill="rgba(0,0,0,0.35)" stroke="rgba(0,207,180,0.6)" stroke-width="2"/>`);
+  let shown=0;
+  if(totalUnits>0 && !anyTooBig){
+    const scP=rPipe/(innerId/2);
+    const units=[];
+    MICRO.forEach(m=>{ const n=counts[m.id]||0; if(microEffOd(m)<=innerId){ for(let k=0;k<n;k++) units.push({m, uR:unitPackRadiusMm(m)}); } });
+    const placed=packMixed(innerId/2, units);
+    shown=placed.length;
+    // große zuerst zeichnen, kleine oben
+    placed.sort((a,b)=> unitPackRadiusMm(b.m)-unitPackRadiusMm(a.m));
+    placed.forEach(u=> drawUnitAt(mp, u.m, cx+u.x*scP, cy+u.y*scP, scP, 'pack'));
+  } else if(anyTooBig){
+    mp.push(`<text x="${cx}" y="${cy+4}" text-anchor="middle" font-family="Syne" font-size="13" fill="#ff5a6e">passt nicht ins Rohr</text>`);
+  }
+  $("#mixsvg").innerHTML=mp.join("");
+  $("#comboCnt").textContent=totalUnits;
+
+  // Notiz
+  let note=`Belegung ${f1(usedPct)} % von max. ${f1(state.fill)} % · freier Restquerschnitt ${f0(Math.max(0,remain))} mm² (bis Füllgrad-Limit).`;
+  if(shown<totalUnits && !anyTooBig) note+=` Hinweis: ${shown} von ${totalUnits} Einheiten geometrisch darstellbar — Rest sprengt den Querschnitt.`;
+  $("#comboNote").textContent=note;
+}
+
+/* ====================== EVENTS ====================== */
+$("#pipeSel").addEventListener("change", e=>{ state.pipe=e.target.value; renderAll(); });
+$("#customId").addEventListener("input", ()=>{ renderAll(); });
+$("#microSel").addEventListener("change", e=>{ state.micro=e.target.value; renderAll(); });
+
+$("#fillSlider").addEventListener("input", e=>{ state.fill=+e.target.value; $("#fillVal").textContent=state.fill+" %"; renderAll(); });
+
+function syncLen(v){
+  v=Math.max(0, v||0);
+  state.len=v;
+  $("#lenInput").value=v;
+  $("#lenSlider").value=Math.min(5000,v);
+  renderAll();
+}
+$("#lenSlider").addEventListener("input", e=>syncLen(+e.target.value));
+$("#lenInput").addEventListener("input", e=>syncLen(+e.target.value));
+
+$("#intvSlider").addEventListener("input", e=>{ state.intv=+e.target.value; $("#intvVal").textContent=state.intv+" m"; renderAll(); });
+$("#muSlider").addEventListener("input", e=>{ state.mu=+e.target.value; $("#muVal").textContent=f2(state.mu); renderAll(); });
+$("#presSlider").addEventListener("input", e=>{ state.pres=+e.target.value; $("#presVal").textContent=f1(state.pres)+" bar"; renderAll(); });
+
+document.querySelectorAll("#methodSeg button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll("#methodSeg button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    state.method=b.dataset.m;
+    renderAll();
+  });
+});
+
+function resetAll(){
+  state={ pipe:"kkhr110", micro:"v12", fill:40, len:1200, method:"fix", intv:500, mu:0.03, pres:10 };
+  $("#pipeSel").value=state.pipe; $("#microSel").value=state.micro;
+  $("#fillSlider").value=40; $("#fillVal").textContent="40 %";
+  $("#lenSlider").value=1200; $("#lenInput").value=1200;
+  $("#intvSlider").value=500; $("#intvVal").textContent="500 m";
+  $("#muSlider").value=0.03; $("#muVal").textContent="0.03";
+  $("#presSlider").value=10; $("#presVal").textContent="10.0 bar";
+  document.querySelectorAll("#methodSeg button").forEach((x,i)=>x.classList.toggle("active", i===0));
+  renderAll();
+}
+
+/* INIT */
+buildCombo();
+renderAll();
+</script>
+</body>
+</html>

@@ -40,7 +40,7 @@ body{
 .wrap{max-width:1180px; margin:0 auto; padding:32px 20px 80px;}
 header.app-head{margin-bottom:28px;}
 .brand{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
-.logo-dot{width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 16px var(--accent);}
+.agf-logo{width:44px;height:44px;flex:0 0 auto;display:block;filter:drop-shadow(0 0 14px rgba(0,207,180,0.35));}
 h1{font-weight:700; font-size:clamp(22px,3.4vw,34px); letter-spacing:-0.5px;}
 .subtitle{color:var(--text-dim); font-size:14px; margin-top:6px; font-weight:400;}
 .tag{font-family:'DM Mono',monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--accent); border:1px solid var(--glass-border); padding:3px 10px; border-radius:20px;}
@@ -213,7 +213,9 @@ footer.fnote{margin-top:30px; text-align:center; color:var(--text-dim); font-siz
 <div class="wrap">
   <header class="app-head">
     <div class="brand">
-      <div class="logo-dot"></div>
+      <svg class="agf-logo" viewBox="0 0 48 48" width="44" height="44" role="img" aria-label="AGF Logo" xmlns="http://www.w3.org/2000/svg">
+        <path transform="matrix(1,0,0,-1,24.0002,1)" d="M0 0V0C-1.165 0-2.205-.734-2.852-2.013L-22.406-40.656C-23.025-41.88-23.026-43.157-22.409-44.161-21.798-45.154-20.676-45.728-19.324-45.741H19.324C20.676-45.728 21.798-45.154 22.408-44.162 23.025-43.158 23.024-41.88 22.405-40.656L16.114-28.224C15.108-26.235 12.668-24.735 10.437-24.735H10.436L-.011-24.738C-.986-24.738-1.777-25.53-1.777-26.505-1.776-27.48-.986-28.271-.01-28.271L10.437-28.267H10.438C11.332-28.267 12.559-29.021 12.963-29.819L19.232-42.209H-19.232L0-4.201 6.894-17.826C7.205-18.441 7.827-18.795 8.472-18.795 8.74-18.795 9.012-18.734 9.267-18.605 10.138-18.164 10.486-17.102 10.046-16.231L2.852-2.013C2.204-.734 1.165 0 0 0" fill="#45b8a9"/>
+      </svg>
       <h1>Mikrorohr &amp; Leerrohr-Kalkulator</h1>
       <span class="tag">Microfocus · Amadys Telecom Austria</span>
     </div>

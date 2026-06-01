@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Mikrorohr & Leerrohr-Kalkulator · Microfocus / Amadys</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -81,9 +81,9 @@ input[type=range]::-moz-range-thumb{width:18px;height:18px;border:none;border-ra
 
 /* Spec rows */
 .specs{margin-top:4px; border-top:1px dashed var(--glass-border); padding-top:10px;}
-.spec-row{display:flex; justify-content:space-between; align-items:baseline; padding:4px 0; font-size:12.5px;}
-.spec-row .k{color:var(--text-dim); font-family:'Syne',sans-serif;}
-.spec-row .v{font-family:'DM Mono',monospace; color:var(--accent); font-weight:400;}
+.spec-row{display:flex; justify-content:space-between; align-items:baseline; gap:6px 14px; flex-wrap:wrap; padding:4px 0; font-size:12.5px;}
+.spec-row .k{color:var(--text-dim); font-family:'Syne',sans-serif; flex:0 0 auto;}
+.spec-row .v{font-family:'DM Mono',monospace; color:var(--accent); font-weight:400; text-align:right; margin-left:auto;}
 
 /* Status badge */
 .badge{display:inline-flex; align-items:center; gap:9px; padding:10px 18px; border-radius:30px; font-weight:600; font-size:15px; border:1px solid var(--glass-border);}
@@ -145,6 +145,50 @@ td .more.zero{color:var(--text-dim);}
 footer.fnote{margin-top:30px; text-align:center; color:var(--text-dim); font-size:11.5px; font-family:'DM Mono',monospace;}
 
 /* Print */
+/* Tabellen horizontal scrollbar (verhindert Seiten-Überlauf auf Mobil) */
+.tscroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.tscroll table.cmp{ min-width:440px; }
+/* SVGs skalieren mit dem Container */
+.svg-stage svg{ width:100%; height:auto; max-width:300px; display:block; }
+
+/* ---- iPhone / schmale Displays ---- */
+@media(max-width:600px){
+  .wrap{
+    padding:18px 14px 60px;
+    padding-left:max(14px, env(safe-area-inset-left));
+    padding-right:max(14px, env(safe-area-inset-right));
+    padding-top:max(18px, env(safe-area-inset-top));
+  }
+  h1{ font-size:23px; }
+  .subtitle{ font-size:13px; }
+  .card{ padding:18px 15px; border-radius:14px; }
+  /* Statuskarte sauber stapeln: Badge oben, KPIs 2×2 */
+  .statuscard{ flex-direction:column; align-items:stretch; gap:14px; }
+  .statuscard #badge{ align-self:flex-start; }
+  .statuscard .result-grid{ flex:initial; width:100%; grid-template-columns:1fr 1fr; }
+  .result-grid{ grid-template-columns:1fr 1fr; }
+  .kpi{ padding:12px; }
+  .kpi .num{ font-size:24px; }
+  /* kompaktere Tabellen – passen ohne Querscroll */
+  table.cmp{ font-size:11.5px; width:100%; }
+  .tscroll table.cmp{ min-width:0; }
+  table.cmp th, table.cmp td{ padding:7px 4px; }
+  table.cmp td .name{ font-size:11.5px; }
+  input.cnt{ width:50px; padding:6px 3px; font-size:13px; }
+  .fillbar{ min-width:38px; }
+  /* SVG-Spalten stapeln, Legende darunter */
+  .svg-wrap{ gap:16px; }
+  .svg-col{ width:100%; }
+  .svg-stage{ width:100%; }
+  .svg-stage svg{ max-width:none; }
+  #lenInput{ max-width:96px; }
+  .seg button{ padding:8px 12px; font-size:12.5px; }
+}
+@media(max-width:380px){
+  .result-grid, .statuscard .result-grid{ grid-template-columns:1fr; }
+  .kpi .num{ font-size:26px; }
+}
+
 @media print{
   body{background:#fff !important;}
   .bg-mesh{display:none !important;}
@@ -177,7 +221,7 @@ footer.fnote{margin-top:30px; text-align:center; color:var(--text-dim); font-siz
   </header>
 
   <!-- Status -->
-  <div class="card full" style="margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+  <div class="card full statuscard" style="margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
     <div id="badge" class="badge ok"><span class="bdot"></span><span id="badgeTxt">Einzug möglich</span></div>
     <div class="result-grid" style="flex:1; margin:0;">
       <div class="kpi"><div class="num" id="kpiUnits">–</div><div class="lbl">Einheiten im Rohr</div></div>
@@ -297,12 +341,14 @@ footer.fnote{margin-top:30px; text-align:center; color:var(--text-dim); font-siz
   <!-- Vergleichstabelle -->
   <div class="card full" style="margin-top:20px;">
     <h2><span class="ic">≣</span> Vergleich aller Mikrorohr-Typen im gewählten Rohr</h2>
+    <div class="tscroll">
     <table class="cmp">
       <thead><tr>
         <th>Produkt</th><th>Außen-Ø</th><th>Einheiten</th><th>Belegung</th><th>Status</th>
       </tr></thead>
       <tbody id="cmpBody"></tbody>
     </table>
+    </div>
   </div>
 
   <!-- Kombinationsmodus -->
@@ -315,13 +361,15 @@ footer.fnote{margin-top:30px; text-align:center; color:var(--text-dim); font-siz
         <div class="svg-cap">Kombinierte Belegung · <b id="comboCnt">0</b> Einheiten</div>
         <div class="svg-stage"><svg id="mixsvg" width="300" height="300" viewBox="0 0 300 300"></svg></div>
       </div>
-      <div style="flex:1; min-width:300px;">
+      <div style="flex:1; min-width:280px;">
+        <div class="tscroll">
         <table class="cmp">
           <thead><tr>
             <th>Produkt</th><th>Außen-Ø</th><th>Anzahl</th><th>Belegung</th><th>+ noch möglich</th>
           </tr></thead>
           <tbody id="comboBody"></tbody>
         </table>
+        </div>
         <div id="comboSummary" style="margin-top:16px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
           <div id="comboBadge" class="badge ok"><span class="bdot"></span><span id="comboBadgeTxt">Einzug möglich</span></div>
           <div class="combo-kpis">
